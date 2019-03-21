@@ -1,3 +1,5 @@
+package agenteUDP;
+
 import java.io.*;
 import java.net.*;
 public class UDPClient {
@@ -14,7 +16,7 @@ public class UDPClient {
 
             InetAddress IPAddress = InetAddress.getByName(servidor);
 
-            byte[] sendData = new byte[1024];
+            byte[] sendData;
             byte[] receiveData = new byte[1024];
 
             System.out.println("Digite o texto a ser enviado ao servidor: ");

@@ -1,3 +1,5 @@
+package agenteUDP;
+
 import java.io.*;
 import java.net.*;
 
@@ -12,7 +14,7 @@ public class UDPServer {
             DatagramSocket serverSocket = new DatagramSocket(porta);
 
             byte[] receiveData = new byte[1024];
-            byte[] sendData = new byte[1024];
+            byte[] sendData;
 
             while (true) {
 
