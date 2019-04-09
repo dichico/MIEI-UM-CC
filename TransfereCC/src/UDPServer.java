@@ -1,5 +1,3 @@
-package agenteUDP;
-
 import java.io.*;
 import java.net.*;
 
