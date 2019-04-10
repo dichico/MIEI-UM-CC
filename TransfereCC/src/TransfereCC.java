@@ -2,13 +2,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-public class TransfereCC implements Runnable {
+public class TransfereCC {
 
-    public TransfereCC() {
+    /*public TransfereCC() {
 
-    }
+    }*/
 
-    public void run() {
+    public static void main(String[] args) {
 
         BufferedReader in
                 = new BufferedReader(new InputStreamReader(System.in));
@@ -33,7 +33,7 @@ public class TransfereCC implements Runnable {
         }
     }
 
-    public static void main (String[] args) {
+    /*public static void main (String[] args) {
         (new Thread(new TransfereCC())).run();
-    }
+    }*/
 }

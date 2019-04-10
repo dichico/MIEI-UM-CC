@@ -35,8 +35,10 @@ public class AgenteUDP {
                         .println("Enviando pacote UDP para " + nservidor + ":" + 7777);
                 socket.send(sendPacket);
 
-            } catch (Exception e) {
+            } catch (SocketException e) {
                 System.out.println("O servidor em questão não está a correr. Por favor tente de novo.");
+            }
+            catch (IOException e) {
             }
 
 
