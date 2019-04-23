@@ -1,9 +1,8 @@
 /**
- *
- * @authors Catarina Ribeiro, Leonardo Cavalcante, Leonardo Portugal, Victor
- * Meireles
- *
+ * @author Diogo Araújo, Diogo Nogueira
+ * @version 1.0
  */
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.DatagramPacket;
