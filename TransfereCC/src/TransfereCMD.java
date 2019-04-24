@@ -1,6 +1,3 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Scanner;
 
 public class TransfereCMD {
@@ -8,13 +5,11 @@ public class TransfereCMD {
     static final int portaUDP = 7777;
     static final int portaEstado = 9999;
 
-
     public static void main(String[] args) {
 
         Scanner teclado = new Scanner(System.in);
 
         String texto = teclado.nextLine();
-
         String[] argumentos = texto.split(" ");
 
         switch (argumentos[0]) {

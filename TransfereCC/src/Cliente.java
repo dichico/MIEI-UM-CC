@@ -25,9 +25,6 @@ public class Cliente {
     static final int TAMANHO_PACOTE = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
     static final int TAMANHO_JANELA = 10;
     static final int VALOR_TEMPORIZADOR = 1000;
-
-    static final int portaServidor = 7777;
-    static final int portaEstado = 9999;
  
     int base;    // numero da janela
     int proxNumSeq;   //proximo numero de sequencia na janela
@@ -225,18 +222,5 @@ public class Cliente {
                 System.exit(-1);
             }
         }
-    }
- 
-    public static void main(String[] args) {
-        Scanner teclado = new Scanner(System.in);
-        System.out.println("Bem vindo ao Cliente: ");
-        System.out.print("Digite o endereco do servidor: ");
-        String enderecoIP = teclado.nextLine();
-        System.out.print("Digite o diretorio do arquivo a ser enviado. (Ex: C:/Users/cocos/): ");
-        String diretorio = teclado.nextLine();
-        System.out.print("Digite o nome do arquivo a ser enviado: (Ex: letra.txt): ");
-        String nome = teclado.nextLine();
- 
-        Cliente cliente = new Cliente(portaServidor, portaEstado, diretorio + nome, enderecoIP);
     }
 }
