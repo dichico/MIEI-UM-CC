@@ -1,10 +1,9 @@
-import java.io.*;
 import java.net.*;
 
 
 public class UDPServer {
 
-        public static void main(String args[]) throws Exception {
+        public static void main(String[] args) throws Exception {
 
             int porta = 7777;
             int numConn = 1;

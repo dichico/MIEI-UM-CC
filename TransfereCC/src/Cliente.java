@@ -1,8 +1,3 @@
-/**
- * @author Diogo Araújo, Diogo Nogueira
- * @version 1.0
- */
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.DatagramPacket;
@@ -18,7 +13,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 import static java.lang.Thread.sleep;
- 
+
+/**
+ * Source-Code para a classe Cliente.
+ * @author Diogo Araújo, Diogo Nogueira
+ * @version 1.0
+ */
 public class Cliente {
  
     static final int CABECALHO = 4;
@@ -55,7 +55,7 @@ public class Cliente {
  
             //criando threads para processar os dados
             ThreadEntrada tEntrada = new ThreadEntrada(socketEntrada);
-            ThreadSaida tSaida = new ThreadSaida(socketSaida, portaDestino, portaEntrada, enderecoIp);
+            ThreadSaida tSaida = new ThreadSaida(socketSaida, portaDestino, enderecoIp);
             tEntrada.start();
             tSaida.start();
  
@@ -96,13 +96,11 @@ public class Cliente {
         private DatagramSocket socketSaida;
         private int portaDestino;
         private InetAddress enderecoIP;
-        private int portaEntrada;
- 
+
         //construtor
-        public ThreadSaida(DatagramSocket socketSaida, int portaDestino, int portaEntrada, String enderecoIP) throws UnknownHostException {
+        public ThreadSaida(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
             this.socketSaida = socketSaida;
             this.portaDestino = portaDestino;
-            this.portaEntrada = portaEntrada;
             this.enderecoIP = InetAddress.getByName(enderecoIP);
         }
  
@@ -117,9 +115,8 @@ public class Cliente {
  
         public void run() {
             try {
-                FileInputStream fis = new FileInputStream(new File(caminho));
- 
-                try {
+
+                try (FileInputStream fis = new FileInputStream(new File(caminho))) {
                     while (!transferenciaCompleta) {    //envia pacotes se a janela nao estiver cheia
                         if (proxNumSeq < base + (TAMANHO_JANELA * TAMANHO_PACOTE)) {
                             semaforo.acquire();
@@ -128,13 +125,13 @@ public class Cliente {
                             }
                             byte[] enviaDados = new byte[CABECALHO];
                             boolean ultimoNumSeq = false;
- 
+
                             if (proxNumSeq < listaPacotes.size()) {
                                 enviaDados = listaPacotes.get(proxNumSeq);
                             } else {
                                 byte[] dataBuffer = new byte[TAMANHO_PACOTE];
                                 int tamanhoDados = fis.read(dataBuffer, 0, TAMANHO_PACOTE);
-                                if (tamanhoDados == -1) {   //sem dados para enviar, envia pacote vazio 
+                                if (tamanhoDados == -1) {   //sem dados para enviar, envia pacote vazio
                                     ultimoNumSeq = true;
                                     enviaDados = gerarPacote(proxNumSeq, new byte[0]);
                                 } else {    //ainda ha dados para enviar
@@ -146,7 +143,7 @@ public class Cliente {
                             //enviando pacotes
                             socketSaida.send(new DatagramPacket(enviaDados, enviaDados.length, enderecoIP, portaDestino));
                             System.out.println("Cliente: Numero de sequencia enviado " + proxNumSeq);
- 
+
                             //atualiza numero de sequencia se nao estiver no fim
                             if (!ultimoNumSeq) {
                                 proxNumSeq += TAMANHO_PACOTE;
@@ -160,7 +157,6 @@ public class Cliente {
                 } finally {
                     manipularTemporizador(false);
                     socketSaida.close();
-                    fis.close();
                     System.out.println("Cliente: Socket de saida fechado!");
                 }
             } catch (Exception e) {

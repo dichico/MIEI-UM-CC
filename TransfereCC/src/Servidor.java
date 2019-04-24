@@ -1,8 +1,3 @@
-/**
- * @author Diogo Araújo, Diogo Nogueira
- * @version 1.0
- */
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.net.DatagramPacket;
@@ -12,7 +7,12 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Scanner;
-  
+
+/**
+ * Source-Code para a Classe Servidor
+ * @author Diogo Araújo, Diogo Nogueira
+ * @version 1.0
+ */
 public class Servidor { 
     static final int headerPDU = 4; // Inteiro são 4.
     static final int tamanhoPDU = 1000 + headerPDU;
@@ -32,8 +32,8 @@ public class Servidor {
         System.out.println("Servidor com porta UDP: " + portaEntrada);
  
         int ultimoNumSeq = -1;
-        int proxNumSeq = 0;  //proximo numero de sequencia
-        boolean transferenciaCompleta = false;  //flag caso a transferencia nao for completa
+        int proxNumACK = 0;  //proximo numero de sequencia
+        boolean transferCompleta = false;  //flag caso a transferencia nao for completa
  
         // Criação dos sockets
         try {
@@ -46,31 +46,31 @@ public class Servidor {
  
                 FileOutputStream fileStream = null;
  
-                while (!transferenciaCompleta) {
-                    int i = 0;
+                while (!transferCompleta) {
+
                     socketEntrada.receive(recebePacote);
-                    InetAddress enderecoIP = recebePacote.getAddress();
+                    InetAddress ipAddress = recebePacote.getAddress();
  
-                    int numSeq = ByteBuffer.wrap(Arrays.copyOfRange(recebeDados, 0, headerPDU)).getInt();
-                    System.out.println("Servidor: Numero de sequencia recebido " + numSeq);
+                    int seqACK = ByteBuffer.wrap(Arrays.copyOfRange(recebeDados, 0, headerPDU)).getInt();
+                    System.out.println("Servidor: Numero de sequencia recebido " + seqACK);
  
                     //se o pacote for recebido em ordem
-                    if (numSeq == proxNumSeq) {
+                    if (seqACK == proxNumACK) {
                         //se for ultimo pacote (sem dados), enviar ack de encerramento
                         if (recebePacote.getLength() == headerPDU) {
                             byte[] pacoteAck = gerarPacote(-2);     //ack de encerramento
-                            socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, enderecoIP, portaDestino));
-                            transferenciaCompleta = true;
+                            socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
+                            transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Arquivo criado!");
                         } else {
-                            proxNumSeq = numSeq + tamanhoPDU - headerPDU;  //atualiza proximo numero de sequencia
-                            byte[] pacoteAck = gerarPacote(proxNumSeq);
-                                socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, enderecoIP, portaDestino));
-                                System.out.println("Servidor: Ack enviado " + proxNumSeq);
+                            proxNumACK = seqACK + tamanhoPDU - headerPDU;  //atualiza proximo numero de sequencia
+                            byte[] pacoteAck = gerarPacote(proxNumACK);
+                                socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
+                                System.out.println("Servidor: Ack enviado " + proxNumACK);
                           }
  
                         //se for o primeiro pacote da transferencia 
-                        if (numSeq == 0 && ultimoNumSeq == -1) {
+                        if (seqACK == 0 && ultimoNumSeq == -1) {
                             //cria file
                             File file = new File(diretoria);
                             if (!file.exists()) {
@@ -78,20 +78,18 @@ public class Servidor {
                             }
                             fileStream = new FileOutputStream(file);
                         }
-                        //escreve dados no arquivo
+                        //escreve dados no ficheiro
                         fileStream.write(recebeDados, headerPDU, recebePacote.getLength() - headerPDU);
  
-                        ultimoNumSeq = numSeq; //atualiza o ultimo numero de sequencia enviado
+                        ultimoNumSeq = seqACK; //atualiza o ultimo numero de sequencia enviado
                     } else {    //se pacote estiver fora de ordem, mandar duplicado
                         byte[] pacoteAck = gerarPacote(ultimoNumSeq);
-                        socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, enderecoIP, portaDestino));
+                        socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                         System.out.println("Servidor: Ack duplicado enviado " + ultimoNumSeq);
                     }
  
                 }
-                if (fileStream != null) {
-                    fileStream.close();
-                }
+                fileStream.close();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(-1);
