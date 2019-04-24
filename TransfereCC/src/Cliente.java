@@ -1,5 +1,5 @@
 /**
- * @author Diogo Araújo, Diogo Nogueira
+ * @author Diogo AraÃºjo, Diogo Nogueira
  * @version 1.0
  */
 
@@ -26,8 +26,8 @@ public class Cliente {
     static final int TAMANHO_JANELA = 10;
     static final int VALOR_TEMPORIZADOR = 1000;
 
-    static final int portaServidor = 8002;
-    static final int portaACK = 8003;
+    static final int portaServidor = 7777;
+    static final int portaEstado = 9999;
  
     int base;    // numero da janela
     int proxNumSeq;   //proximo numero de sequencia na janela
@@ -237,6 +237,6 @@ public class Cliente {
         System.out.print("Digite o nome do arquivo a ser enviado: (Ex: letra.txt): ");
         String nome = teclado.nextLine();
  
-        Cliente cliente = new Cliente(portaServidor, portaACK, diretorio + nome, enderecoIP);
+        Cliente cliente = new Cliente(portaServidor, portaEstado, diretorio + nome, enderecoIP);
     }
 }
