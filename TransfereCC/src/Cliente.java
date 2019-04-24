@@ -19,6 +19,7 @@ import static java.lang.Thread.sleep;
  * @author Diogo Araújo, Diogo Nogueira
  * @version 1.0
  */
+
 public class Cliente {
  
     static final int CABECALHO = 4;

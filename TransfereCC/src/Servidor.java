@@ -13,7 +13,9 @@ import java.util.Scanner;
  * @author Diogo Araújo, Diogo Nogueira
  * @version 1.0
  */
-public class Servidor { 
+
+public class Servidor {
+
     static final int headerPDU = 4; // Inteiro são 4.
     static final int tamanhoPDU = 1000 + headerPDU;
 
@@ -33,11 +35,13 @@ public class Servidor {
         int proxNumACK = 0;  
         boolean transferCompleta = false; 
  
-        // Criação dos sockets.
+        // Criação dos Sockets de Entrada e Saída.
         try {
             socketEntrada = new DatagramSocket(portaEntrada);
             socketSaida = new DatagramSocket();
-            System.out.println("Servidor Conectado...");
+
+            System.out.println("Conexão Estabelecida.");
+
             try {
                 byte[] recebeDados = new byte[tamanhoPDU];
                 DatagramPacket recebePacote = new DatagramPacket(recebeDados, recebeDados.length);
