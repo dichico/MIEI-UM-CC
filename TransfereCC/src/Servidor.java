@@ -16,26 +16,24 @@ import java.util.Scanner;
 public class Servidor { 
     static final int headerPDU = 4; // Inteiro são 4.
     static final int tamanhoPDU = 1000 + headerPDU;
-    static final int portaUDP = 7777;
-    static final int portaEstado = 9999;
 
     /**
      * Construtor parametrizado para a criação do Servidor.
-     * @param portaEntrada
-     * @param portaDestino
+     * @param portaEntrada Porta UDP usada para receber o(s) pacote(s) UDP.
+     * @param portaDestino Porta ACK usada para enviar os pacotes ACK durante a transferência.
      * @param diretoria
      */
     public Servidor(int portaEntrada, int portaDestino, String diretoria) {
-        DatagramSocket socketEntrada, socketSaida; // inicializar sockets
-        //AgenteUDP udp = new AgenteUDP(portaEntrada, portaDestino);
+
+        DatagramSocket socketEntrada, socketSaida;
 
         System.out.println("Servidor com porta UDP: " + portaEntrada);
  
         int ultimoNumSeq = -1;
-        int proxNumACK = 0;  //proximo numero de sequencia
-        boolean transferCompleta = false;  //flag caso a transferencia nao for completa
+        int proxNumACK = 0;  
+        boolean transferCompleta = false; 
  
-        // Criação dos sockets
+        // Criação dos sockets.
         try {
             socketEntrada = new DatagramSocket(portaEntrada);
             socketSaida = new DatagramSocket();
@@ -103,24 +101,11 @@ public class Servidor {
             e1.printStackTrace();
         }
     }
-    //fim do construtor
- 
-    //gerar pacote de ACK
+
     public byte[] gerarPacote(int numAck) {
         byte[] numAckBytes = ByteBuffer.allocate(headerPDU).putInt(numAck).array();
         ByteBuffer bufferPacote = ByteBuffer.allocate(headerPDU);
         bufferPacote.put(numAckBytes);
         return bufferPacote.array();
-    }
- 
-    public static void main(String[] args) {
-        Scanner teclado = new Scanner(System.in);
-        System.out.println("Bem vindo ao Servidor");
-        System.out.print("Digite a diretoria do arquivo a ser criado. (Ex: C:/Users/cocos/): ");
-        String diretorio = teclado.nextLine();
-        System.out.print("Digite o nome do ficheiro para onde irá ser guardado o recebido: (Ex: teste2.txt): ");
-        String nome = teclado.nextLine();
- 
-        Servidor servidor = new Servidor(portaUDP, portaEstado, diretorio + nome);
     }
 }
