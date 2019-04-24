@@ -1,7 +1,15 @@
 import java.util.Scanner;
 
+/**
+ * Source-Code para a classe TransfereCC.
+ * Classe responsável por ler os comandos e executá-los.
+ * @author Diogo Araújo, Diogo Nogueira
+ * @version 1.0
+ */
+
 public class TransfereCMD {
 
+    // Portas UDP e de Estado (para trocas dos ACK).
     static final int portaUDP = 7777;
     static final int portaEstado = 9999;
 
