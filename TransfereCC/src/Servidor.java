@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Scanner;
 
 /**
  * Source-Code para a Classe Servidor
