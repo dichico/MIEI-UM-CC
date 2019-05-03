@@ -172,6 +172,7 @@ public class Cliente {
                         System.out.println("Cliente: Ack recebido " + numAck);
                         //se for ACK duplicado
                         if (base == numAck + tamanhoPDU) {
+                            System.out.println("ACK duplicado.");
                             semaforo.acquire();
                             manipularTemporizador(false);
                             proxNumSeq = base;

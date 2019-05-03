@@ -1,16 +1,12 @@
-import java.io.File;
-import java.io.FileOutputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.io.*;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
- * Source-Code para a Classe Servidor
+ * Código-fonte para a Classe Servidor, que tem metade do código, concretamente da parte de receber os dados (GET)
  * @author Diogo Araújo, Diogo Nogueira
- * @version 1.0
+ * @version 1.5
  */
 
 public class Servidor extends PacoteUDP {
@@ -19,10 +15,10 @@ public class Servidor extends PacoteUDP {
     static final int tamanhoPDU = 1000 + headerPDU;
 
     /**
-     * Construtor parametrizado para a criação do Servidor.
+     * Construtor parametrizado para a criação do Servidor (GET)
      * @param portaEntrada Porta UDP usada para receber o(s) pacote(s) UDP.
      * @param portaDestino Porta ACK usada para enviar os pacotes ACK durante a transferência.
-     * @param diretoria
+     * @param diretoria A diretoria para onde o ficheiro a ser recebido irá ser colocado.
      */
     public Servidor(int portaEntrada, int portaDestino, String diretoria) {
 
@@ -33,9 +29,9 @@ public class Servidor extends PacoteUDP {
         int ultimoNumSeq = -1;
         int proxNumACK = 0;  
         boolean transferCompleta = false; 
- 
-        // Criação dos Sockets de Entrada e Saída.
+
         try {
+            // Criação dos Sockets de Entrada e Saída.
             socketEntrada = new DatagramSocket(portaEntrada);
             socketSaida = new DatagramSocket();
 
@@ -57,18 +53,23 @@ public class Servidor extends PacoteUDP {
  
                     //se o pacote for recebido em ordem
                     if (seqACK == proxNumACK) {
-                        //se for ultimo pacote (sem dados), enviar ack de encerramento
+                        //se for ultimo pacote (sem dados), enviar ack para encerrar o processo de transferencia
                         if (recebePacote.getLength() == headerPDU) {
+
                             byte[] pacoteAck = gerarPacoteACK(-2);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                             transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Arquivo criado!");
+
                         } else {
-                            proxNumACK = seqACK + tamanhoPDU - headerPDU;  //atualiza proximo numero de sequencia
-                            byte[] pacoteAck = gerarPacoteACK(proxNumACK);
-                                socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
-                                System.out.println("Servidor: Ack enviado " + proxNumACK);
-                          }
+                            // atualiza proximo numero de sequencia à base do tamanho do pacote.
+                            proxNumACK = seqACK + tamanhoPDU - headerPDU;
+                            byte[] pacoteACK = gerarPacoteACK(proxNumACK);
+                            socketSaida.send(new DatagramPacket(pacoteACK, pacoteACK.length, ipAddress, portaDestino));
+
+                            System.out.println("Servidor: ACK enviado " + proxNumACK);
+
+                        }
  
                         //se for o primeiro pacote da transferencia 
                         if (seqACK == 0 && ultimoNumSeq == -1) {
