@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 /**
  * Source-Code para a classe Cliente.
  * @author Diogo Araújo, Diogo Nogueira
- * @version 1.0
+ * @version 1.5
  */
 
 public class Cliente {
@@ -17,24 +17,30 @@ public class Cliente {
     static final int windowSize = 10;
 
 
-    int base;    // numero da janela
-    int proxNumSeq;   //proximo numero de sequencia na janela
-    String caminho;     //diretorio + nome do arquivo
-    List<byte[]> listaPacotes;
-    Timer timer;
-    Semaphore semaforo;
+    int base;    // numero da janela deslizante.
+    int proxNumSeq;   // Próximo número de sequência.
+    String caminho;     //diretoria + nome do arquivo.
+    List<byte[]> listaPacotes; // lista de pacotes da janela deslizante.
+    Timer temporizador; // temporizador para a espera de resposta.
+    Semaphore acesso;
     boolean transferenciaCompleta;
- 
-    //construtor
-    public Cliente(int portaDestino, int portaEntrada, String caminho, String enderecoIp) {
+
+    /**
+     * Construtor parametrizado para a criação do Cliente que irá fazer PUT no servidor.
+     * @param portaDestino Porta UDP que o servidor tem aberta para receber o(s) pacote(s) UDP (7777)
+     * @param portaEntrada Porta ACK usada para receber os pacotes ACK vindos do servidor durante a transferência (9999)
+     * @param localDisco A diretoria do ficheiro a ser enviado.
+     * @param enderecoIP Endereço IP do servidor a enviar o ficheiro.
+     */
+    public Cliente(int portaDestino, int portaEntrada, String localDisco, String enderecoIP) {
         base = 0;
         proxNumSeq = 0;
-        this.caminho = caminho;
+        this.caminho = localDisco;
         listaPacotes = new ArrayList<>(windowSize);
         transferenciaCompleta = false;
         DatagramSocket socketSaida, socketEntrada;
-        semaforo = new Semaphore(1);
-        System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", caminho: " + caminho);
+        acesso = new Semaphore(1);
+        System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", localDisco: " + localDisco);
  
         try {
             //criando sockets
@@ -43,7 +49,7 @@ public class Cliente {
  
             //criando threads para processar os dados
             ThreadEntrada tEntrada = new ThreadEntrada(socketEntrada);
-            ThreadSaida tSaida = new ThreadSaida(socketSaida, portaDestino, enderecoIp);
+            ThreadSaida tSaida = new ThreadSaida(socketSaida, portaDestino, enderecoIP);
             tEntrada.start();
             tSaida.start();
  
@@ -52,33 +58,44 @@ public class Cliente {
             System.exit(-1);
         }
     }
-    //fim do construtor
- 
+
+    /**
+     * Classe interna para a criação do Temporizador e a sua execução.
+     */
     public class Temporizador extends TimerTask {
- 
+
+        /**
+         * Método necessário para correr, vindo da interface Runnable do Java.
+         */
         public void run() {
             try {
-                semaforo.acquire();
+                acesso.acquire();
                 System.out.println("Cliente: Tempo expirado!");
                 proxNumSeq = base;  //reseta numero de sequencia
-                semaforo.release();
+                acesso.release();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
     }
- 
-    //para iniciar ou parar o temporizador
+
+    /**
+     * Método para controlar a criação ou não de um novo Temporizador.
+     * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
+     */
     public void manipularTemporizador(boolean novoTimer) {
-        if (timer != null) {
-            timer.cancel();
+        if (temporizador != null) {
+            temporizador.cancel();
         }
         if (novoTimer) {
-            timer = new Timer();
-            timer.schedule(new Temporizador(), 1000);
+            temporizador = new Timer();
+            temporizador.schedule(new Temporizador(), 1000); // criação de novo timer com 1000 milisegundos, ou seja, 1 segundo.
         }
     }
- 
+
+    /**
+     * A classe interna para enviar informações para o servidor em modo Thread.
+     */
     public class ThreadSaida extends Thread {
  
         private DatagramSocket socketSaida;
@@ -98,7 +115,7 @@ public class Cliente {
                 try (FileInputStream fis = new FileInputStream(new File(caminho))) {
                     while (!transferenciaCompleta) {    //envia pacotes se a janela nao estiver cheia
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
-                            semaforo.acquire();
+                            acesso.acquire();
                             if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
                                 manipularTemporizador(true);
                             }
@@ -127,7 +144,7 @@ public class Cliente {
                             if (!ultimoNumSeq) {
                                 proxNumSeq += tamanhoPDU;
                             }
-                            semaforo.release();
+                            acesso.release();
                         }
                         sleep(5);
                     }
@@ -145,7 +162,9 @@ public class Cliente {
         }
     }
 
-
+    /**
+     * A classe interna para receber informações para o servidor em modo Thread.
+     */
     public class ThreadEntrada extends Thread {
  
         private DatagramSocket socketEntrada;
@@ -173,22 +192,22 @@ public class Cliente {
                         //se for ACK duplicado
                         if (base == numAck + tamanhoPDU) {
                             System.out.println("ACK duplicado.");
-                            semaforo.acquire();
+                            acesso.acquire();
                             manipularTemporizador(false);
                             proxNumSeq = base;
-                            semaforo.release();
+                            acesso.release();
                         } else if (numAck == -2) {
                             transferenciaCompleta = true;
                         } //ACK normal
                         else {
                             base = numAck + tamanhoPDU;
-                            semaforo.acquire();
+                            acesso.acquire();
                             if (base == proxNumSeq) {
                                 manipularTemporizador(false);
                             } else {
                                 manipularTemporizador(true);
                             }
-                            semaforo.release();
+                            acesso.release();
                         }
                     }
                 } catch (Exception e) {
