@@ -1,18 +1,8 @@
-import java.io.File;
-import java.io.FileInputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
-import static java.lang.Thread.sleep;
 
 /**
  * Source-Code para a classe Cliente.
@@ -22,11 +12,11 @@ import static java.lang.Thread.sleep;
 
 public class Cliente {
  
-    static final int CABECALHO = 4;
-    static final int TAMANHO_PACOTE = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
-    static final int TAMANHO_JANELA = 10;
-    static final int VALOR_TEMPORIZADOR = 1000;
- 
+    static final int headerPDU = 4;
+    static final int tamanhoPDU = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
+    static final int windowSize = 10;
+
+
     int base;    // numero da janela
     int proxNumSeq;   //proximo numero de sequencia na janela
     String caminho;     //diretorio + nome do arquivo
@@ -40,7 +30,7 @@ public class Cliente {
         base = 0;
         proxNumSeq = 0;
         this.caminho = caminho;
-        listaPacotes = new ArrayList<>(TAMANHO_JANELA);
+        listaPacotes = new ArrayList<>(windowSize);
         transferenciaCompleta = false;
         DatagramSocket socketSaida, socketEntrada;
         semaforo = new Semaphore(1);
@@ -85,7 +75,7 @@ public class Cliente {
         }
         if (novoTimer) {
             timer = new Timer();
-            timer.schedule(new Temporizador(), VALOR_TEMPORIZADOR);
+            timer.schedule(new Temporizador(), 1000);
         }
     }
  
@@ -101,40 +91,31 @@ public class Cliente {
             this.portaDestino = portaDestino;
             this.enderecoIP = InetAddress.getByName(enderecoIP);
         }
- 
-        //cria o pacote com numero de sequencia e os dados
-        public byte[] gerarPacote(int numSeq, byte[] dadosByte) {
-            byte[] numSeqByte = ByteBuffer.allocate(CABECALHO).putInt(numSeq).array();
-            ByteBuffer bufferPacote = ByteBuffer.allocate(CABECALHO + dadosByte.length);
-            bufferPacote.put(numSeqByte);
-            bufferPacote.put(dadosByte);
-            return bufferPacote.array();
-        }
- 
+
         public void run() {
             try {
 
                 try (FileInputStream fis = new FileInputStream(new File(caminho))) {
                     while (!transferenciaCompleta) {    //envia pacotes se a janela nao estiver cheia
-                        if (proxNumSeq < base + (TAMANHO_JANELA * TAMANHO_PACOTE)) {
+                        if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
                             semaforo.acquire();
                             if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
                                 manipularTemporizador(true);
                             }
-                            byte[] enviaDados = new byte[CABECALHO];
+                            byte[] enviaDados = new byte[headerPDU];
                             boolean ultimoNumSeq = false;
 
                             if (proxNumSeq < listaPacotes.size()) {
                                 enviaDados = listaPacotes.get(proxNumSeq);
                             } else {
-                                byte[] dataBuffer = new byte[TAMANHO_PACOTE];
-                                int tamanhoDados = fis.read(dataBuffer, 0, TAMANHO_PACOTE);
+                                byte[] dataBuffer = new byte[tamanhoPDU];
+                                int tamanhoDados = fis.read(dataBuffer, 0, tamanhoPDU);
                                 if (tamanhoDados == -1) {   //sem dados para enviar, envia pacote vazio
                                     ultimoNumSeq = true;
-                                    enviaDados = gerarPacote(proxNumSeq, new byte[0]);
+                                    enviaDados = PacoteUDP.gerarPacoteDados(proxNumSeq, new byte[0]);
                                 } else {    //ainda ha dados para enviar
                                     byte[] dataBytes = Arrays.copyOfRange(dataBuffer, 0, tamanhoDados);
-                                    enviaDados = gerarPacote(proxNumSeq, dataBytes);
+                                    enviaDados = PacoteUDP.gerarPacoteDados(proxNumSeq, dataBytes);
                                 }
                                 listaPacotes.add(enviaDados);
                             }
@@ -144,7 +125,7 @@ public class Cliente {
 
                             //atualiza numero de sequencia se nao estiver no fim
                             if (!ultimoNumSeq) {
-                                proxNumSeq += TAMANHO_PACOTE;
+                                proxNumSeq += tamanhoPDU;
                             }
                             semaforo.release();
                         }
@@ -163,7 +144,8 @@ public class Cliente {
             }
         }
     }
- 
+
+
     public class ThreadEntrada extends Thread {
  
         private DatagramSocket socketEntrada;
@@ -175,13 +157,13 @@ public class Cliente {
  
         //retorna ACK
         int getnumAck(byte[] pacote) {
-            byte[] numAckBytes = Arrays.copyOfRange(pacote, 0, CABECALHO);
+            byte[] numAckBytes = Arrays.copyOfRange(pacote, 0, headerPDU);
             return ByteBuffer.wrap(numAckBytes).getInt();
         }
  
         public void run() {
             try {
-                byte[] recebeDados = new byte[CABECALHO];  //pacote ACK sem dados
+                byte[] recebeDados = new byte[headerPDU];  //pacote ACK sem dados
                 DatagramPacket recebePacote = new DatagramPacket(recebeDados, recebeDados.length);
                 try {
                     while (!transferenciaCompleta) {
@@ -189,7 +171,7 @@ public class Cliente {
                         int numAck = getnumAck(recebeDados);
                         System.out.println("Cliente: Ack recebido " + numAck);
                         //se for ACK duplicado
-                        if (base == numAck + TAMANHO_PACOTE) {
+                        if (base == numAck + tamanhoPDU) {
                             semaforo.acquire();
                             manipularTemporizador(false);
                             proxNumSeq = base;
@@ -198,7 +180,7 @@ public class Cliente {
                             transferenciaCompleta = true;
                         } //ACK normal
                         else {
-                            base = numAck + TAMANHO_PACOTE;
+                            base = numAck + tamanhoPDU;
                             semaforo.acquire();
                             if (base == proxNumSeq) {
                                 manipularTemporizador(false);

@@ -13,7 +13,7 @@ import java.util.Arrays;
  * @version 1.0
  */
 
-public class Servidor {
+public class Servidor extends PacoteUDP {
 
     static final int headerPDU = 4; // Inteiro são 4.
     static final int tamanhoPDU = 1000 + headerPDU;
@@ -59,13 +59,13 @@ public class Servidor {
                     if (seqACK == proxNumACK) {
                         //se for ultimo pacote (sem dados), enviar ack de encerramento
                         if (recebePacote.getLength() == headerPDU) {
-                            byte[] pacoteAck = gerarPacote(-2);     //ack de encerramento
+                            byte[] pacoteAck = gerarPacoteACK(-2);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                             transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Arquivo criado!");
                         } else {
                             proxNumACK = seqACK + tamanhoPDU - headerPDU;  //atualiza proximo numero de sequencia
-                            byte[] pacoteAck = gerarPacote(proxNumACK);
+                            byte[] pacoteAck = gerarPacoteACK(proxNumACK);
                                 socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                                 System.out.println("Servidor: Ack enviado " + proxNumACK);
                           }
@@ -84,7 +84,7 @@ public class Servidor {
  
                         ultimoNumSeq = seqACK; //atualiza o ultimo numero de sequencia enviado
                     } else {    //se pacote estiver fora de ordem, mandar duplicado
-                        byte[] pacoteAck = gerarPacote(ultimoNumSeq);
+                        byte[] pacoteAck = gerarPacoteACK(ultimoNumSeq);
                         socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                         System.out.println("Servidor: Ack duplicado enviado " + ultimoNumSeq);
                     }
@@ -103,12 +103,5 @@ public class Servidor {
         } catch (SocketException e1) {
             e1.printStackTrace();
         }
-    }
-
-    public byte[] gerarPacote(int numAck) {
-        byte[] numAckBytes = ByteBuffer.allocate(headerPDU).putInt(numAck).array();
-        ByteBuffer bufferPacote = ByteBuffer.allocate(headerPDU);
-        bufferPacote.put(numAckBytes);
-        return bufferPacote.array();
     }
 }

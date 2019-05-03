@@ -4,6 +4,7 @@ import java.util.Scanner;
  * Source-Code para a classe TransfereCC.
  * Classe responsável por ler os comandos e executá-los.
  * @author Diogo Araújo, Diogo Nogueira
+ * @author Java Tutorial UDP
  * @version 1.0
  */
 
