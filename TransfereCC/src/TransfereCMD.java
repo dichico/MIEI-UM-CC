@@ -1,19 +1,21 @@
 import java.util.Scanner;
 
 /**
- * Source-Code para a classe TransfereCC.
  * Classe responsável por ler os comandos e executá-los.
  * @author Diogo Araújo, Diogo Nogueira
  * @author Java Tutorial UDP
- * @version 1.0
+ * @version 1.2
  */
-
 public class TransfereCMD {
 
-    // Portas UDP e de Estado (para trocas dos ACK).
+    /** Porta UDP. **/
     static final int portaUDP = 7777;
+    /** Porta de Estado (para trocas dos ACK). **/
     static final int portaEstado = 9999;
 
+    /**
+     * Função main para correr o programa.
+     */
     public static void main(String[] args) {
 
         Scanner teclado = new Scanner(System.in);

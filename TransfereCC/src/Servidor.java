@@ -7,10 +7,12 @@ import java.nio.ByteBuffer;
  * @author Diogo Araújo, Diogo Nogueira
  * @version 1.5
  */
-
 public class Servidor extends PacoteUDP {
 
+    /** Variável predefinida como o cabeçalho do pacote. **/
     static final int headerPDU = 4; // Inteiro são 4.
+
+    /** Variável predefinida como o tamanho total do pacote. **/
     static final int tamanhoPDU = 1000 + headerPDU;
 
     /**

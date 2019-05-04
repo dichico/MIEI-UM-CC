@@ -11,18 +11,29 @@ import java.util.concurrent.Semaphore;
  */
 
 public class Cliente {
- 
+
+    /** Variável predefinida como o cabeçalho do pacote. **/
     static final int headerPDU = 4;
+
+    /** Variável predefinida como o tamanho total do pacote. **/
     static final int tamanhoPDU = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
+
+    /** Variável predefinida como o tamanho total da "janela deslizante". **/
     static final int windowSize = 10;
 
-
-    int base;    // numero da janela deslizante.
-    int proxNumSeq;   // Próximo número de sequência.
+    /** Variável para guardar o nº da janela corrente. **/
+    int base;
+    /** Variável para guardar o próximo nº de sequência. **/
+    int proxNumSeq;
+    /** O caminho/diretoria do ficheiro que será enviado. **/
     String caminho;     //diretoria + nome do arquivo.
-    List<byte[]> listaPacotes; // lista de pacotes da janela deslizante.
+    /** Variável para guardar a lista de pacotes da janela deslizante. **/
+    List<byte[]> listaPacotes;
+    /** Temporizador a ser usado em caso de falha de resposta. **/
     Timer temporizador; // temporizador para a espera de resposta.
+
     Semaphore acesso;
+    /** Booleano final para confirmar se a transferência ocorreu. **/
     boolean transferenciaCompleta;
 
     /**
@@ -43,15 +54,15 @@ public class Cliente {
         System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", localDisco: " + localDisco);
  
         try {
-            //criando sockets
+            // criando sockets
             socketSaida = new DatagramSocket();
             socketEntrada = new DatagramSocket(portaEntrada);
  
-            //criando threads para processar os dados
-            ThreadEntrada tEntrada = new ThreadEntrada(socketEntrada);
-            ThreadSaida tSaida = new ThreadSaida(socketSaida, portaDestino, enderecoIP);
-            tEntrada.start();
-            tSaida.start();
+            // criando threads para processar os dados enviados e recebidos.
+            ThreadEntrada threadACK = new ThreadEntrada(socketEntrada);
+            ThreadSaida threadPacotes = new ThreadSaida(socketSaida, portaDestino, enderecoIP);
+            threadACK.start();
+            threadPacotes.start();
  
         } catch (Exception e) {
             e.printStackTrace();
@@ -70,7 +81,7 @@ public class Cliente {
         public void run() {
             try {
                 acesso.acquire();
-                System.out.println("Cliente: Tempo expirado!");
+                System.out.println("Cliente: Tempo em espera demasiado.");
                 proxNumSeq = base;  //reseta numero de sequencia
                 acesso.release();
             } catch (InterruptedException e) {
@@ -80,10 +91,10 @@ public class Cliente {
     }
 
     /**
-     * Método para controlar a criação ou não de um novo Temporizador.
+     * Método para controlar o reínicio do Temporizador.
      * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
      */
-    public void manipularTemporizador(boolean novoTimer) {
+    public void reiniciarTemporizador(boolean novoTimer) {
         if (temporizador != null) {
             temporizador.cancel();
         }
@@ -102,12 +113,19 @@ public class Cliente {
         private int portaDestino;
         private InetAddress enderecoIP;
 
-        //construtor
+        /**
+         * Construtor parametrizado para a criação do objeto de ThreadSaída.
+         * @param socketSaida O socket para onde irá sair os pacotes para o servidor.
+         * @param portaDestino A porta do servidor para onde serão enviados os pacotes.
+         * @param enderecoIP O endereço IP do servidor para onde serão enviados os pacotes.
+         * @throws UnknownHostException Uma exceção para quando não se conhece o endereço IP fornecido.
+         */
         public ThreadSaida(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
             this.socketSaida = socketSaida;
             this.portaDestino = portaDestino;
             this.enderecoIP = InetAddress.getByName(enderecoIP);
         }
+
 
         public void run() {
             try {
@@ -117,7 +135,7 @@ public class Cliente {
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
                             acesso.acquire();
                             if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
-                                manipularTemporizador(true);
+                                reiniciarTemporizador(true);
                             }
                             byte[] enviaDados = new byte[headerPDU];
                             boolean ultimoNumSeq = false;
@@ -151,7 +169,7 @@ public class Cliente {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    manipularTemporizador(false);
+                    reiniciarTemporizador(false);
                     socketSaida.close();
                     System.out.println("Cliente: Socket de saida fechado!");
                 }
@@ -168,32 +186,35 @@ public class Cliente {
     public class ThreadEntrada extends Thread {
  
         private DatagramSocket socketEntrada;
- 
-        //construtor
+
+        /**
+         * Construtor parametrizado para a criação do Thread de Entrada.
+         * @param socketEntrada
+         */
         public ThreadEntrada(DatagramSocket socketEntrada) {
             this.socketEntrada = socketEntrada;
         }
- 
-        //retorna ACK
-        int getnumAck(byte[] pacote) {
-            byte[] numAckBytes = Arrays.copyOfRange(pacote, 0, headerPDU);
-            return ByteBuffer.wrap(numAckBytes).getInt();
-        }
- 
+
+        /**
+         * Método (override) necessário para a Thread correr e conterá o código a ser corrido pela mesma.
+         */
         public void run() {
             try {
+
                 byte[] recebeDados = new byte[headerPDU];  //pacote ACK sem dados
+
                 DatagramPacket recebePacote = new DatagramPacket(recebeDados, recebeDados.length);
+
                 try {
                     while (!transferenciaCompleta) {
                         socketEntrada.receive(recebePacote);
-                        int numAck = getnumAck(recebeDados);
+                        int numAck = PacoteUDP.getACK(recebeDados);
                         System.out.println("Cliente: Ack recebido " + numAck);
                         //se for ACK duplicado
                         if (base == numAck + tamanhoPDU) {
                             System.out.println("ACK duplicado.");
                             acesso.acquire();
-                            manipularTemporizador(false);
+                            reiniciarTemporizador(false);
                             proxNumSeq = base;
                             acesso.release();
                         } else if (numAck == -2) {
@@ -203,9 +224,9 @@ public class Cliente {
                             base = numAck + tamanhoPDU;
                             acesso.acquire();
                             if (base == proxNumSeq) {
-                                manipularTemporizador(false);
+                                reiniciarTemporizador(false);
                             } else {
-                                manipularTemporizador(true);
+                                reiniciarTemporizador(true);
                             }
                             acesso.release();
                         }
