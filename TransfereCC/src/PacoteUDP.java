@@ -30,6 +30,11 @@ public class PacoteUDP {
         return ByteBuffer.allocate(headerPDU).putInt(numACK).array();
     }
 
+    /**
+     * Função para obter o nº ACK do pacote em questão.
+     * @param pacote O pacote para o qual se quer obter o ACK.
+     * @return O ACK do pacote.
+     */
     public static int getACK(byte[] pacote) {
         return ByteBuffer.wrap(Arrays.copyOfRange(pacote,0,headerPDU)).getInt();
     }

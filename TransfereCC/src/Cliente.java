@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.nio.ByteBuffer;
 import java.util.concurrent.Semaphore;
 
 /**
@@ -91,10 +90,10 @@ public class Cliente {
     }
 
     /**
-     * Método para controlar o reínicio do Temporizador.
+     * Método para controlar o Temporizador.
      * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
      */
-    public void reiniciarTemporizador(boolean novoTimer) {
+    public void modificarTemporizador(boolean novoTimer) {
         if (temporizador != null) {
             temporizador.cancel();
         }
@@ -126,7 +125,9 @@ public class Cliente {
             this.enderecoIP = InetAddress.getByName(enderecoIP);
         }
 
-
+        /**
+         * Método (override) necessário para a Thread correr e conterá o código a ser corrido pela mesma.
+         */
         public void run() {
             try {
 
@@ -135,7 +136,7 @@ public class Cliente {
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
                             acesso.acquire();
                             if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
-                                reiniciarTemporizador(true);
+                                modificarTemporizador(true);
                             }
                             byte[] enviaDados = new byte[headerPDU];
                             boolean ultimoNumSeq = false;
@@ -169,7 +170,7 @@ public class Cliente {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    reiniciarTemporizador(false);
+                    modificarTemporizador(false);
                     socketSaida.close();
                     System.out.println("Cliente: Socket de saida fechado!");
                 }
@@ -181,7 +182,7 @@ public class Cliente {
     }
 
     /**
-     * A classe interna para receber informações para o servidor em modo Thread.
+     * A classe interna para receber os pacotes de ACK enviados pelo servidor em modo Thread.
      */
     public class ThreadEntrada extends Thread {
  
@@ -189,7 +190,7 @@ public class Cliente {
 
         /**
          * Construtor parametrizado para a criação do Thread de Entrada.
-         * @param socketEntrada
+         * @param socketEntrada O socket para onde irá entrar os pacotes ACK do servidor.
          */
         public ThreadEntrada(DatagramSocket socketEntrada) {
             this.socketEntrada = socketEntrada;
@@ -203,30 +204,34 @@ public class Cliente {
 
                 byte[] recebeDados = new byte[headerPDU];  //pacote ACK sem dados
 
-                DatagramPacket recebePacote = new DatagramPacket(recebeDados, recebeDados.length);
+                DatagramPacket pacoteRecebido = new DatagramPacket(recebeDados, recebeDados.length);
 
                 try {
                     while (!transferenciaCompleta) {
-                        socketEntrada.receive(recebePacote);
-                        int numAck = PacoteUDP.getACK(recebeDados);
-                        System.out.println("Cliente: Ack recebido " + numAck);
+
+                        socketEntrada.receive(pacoteRecebido);
+
+                        int numACK = PacoteUDP.getACK(recebeDados);
+                        System.out.println("Cliente: ACK RECEBIDO " + numACK);
+
                         //se for ACK duplicado
-                        if (base == numAck + tamanhoPDU) {
+                        if (base == numACK + tamanhoPDU) {
                             System.out.println("ACK duplicado.");
                             acesso.acquire();
-                            reiniciarTemporizador(false);
+                            modificarTemporizador(false); // cancelar o temporizador
                             proxNumSeq = base;
                             acesso.release();
-                        } else if (numAck == -2) {
+                        } else if (numACK == -5) {
                             transferenciaCompleta = true;
                         } //ACK normal
                         else {
-                            base = numAck + tamanhoPDU;
+                            // avançar a janela para o numACK mais o tamanho.
+                            base = numACK + tamanhoPDU;
                             acesso.acquire();
                             if (base == proxNumSeq) {
-                                reiniciarTemporizador(false);
+                                modificarTemporizador(false);
                             } else {
-                                reiniciarTemporizador(true);
+                                modificarTemporizador(true);
                             }
                             acesso.release();
                         }

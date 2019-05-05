@@ -61,7 +61,7 @@ public class Servidor extends PacoteUDP {
                         //se for ultimo pacote (sem dados), enviar ack para encerrar o processo de transferencia
                         if (recebePacote.getLength() == headerPDU) {
 
-                            byte[] pacoteFinal = gerarPacoteACK(-2);     //ack de encerramento
+                            byte[] pacoteFinal = gerarPacoteACK(-5);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteFinal, pacoteFinal.length, ipAddress, portaDestino));
                             transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Ficheiro recebido e criado!");
