@@ -6,12 +6,12 @@ import java.util.Scanner;
  * @author Java Tutorial UDP
  * @version 1.2
  */
-public class TransfereCMD {
+class TransfereCMD {
 
     /** Porta UDP. **/
-    static final int portaUDP = 7777;
+    private static final int portaUDP = 7777;
     /** Porta de Estado (para trocas dos ACK). **/
-    static final int portaEstado = 9999;
+    private static final int portaEstado = 9999;
 
     /**
      * Função main para correr o programa.

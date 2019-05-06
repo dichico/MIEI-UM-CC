@@ -7,9 +7,9 @@ import java.util.Arrays;
  * @author Diogo Araújo, Diogo Nogueira
  * @version 1.0
  */
-public class PacoteUDP {
+class PacoteUDP {
 
-    static final int headerPDU = 4;
+    private static final int headerPDU = 4;
 
     /**
      * Cria o pacote com numero de sequência e os dados em bytes.
@@ -17,7 +17,7 @@ public class PacoteUDP {
      * @param dadosByte O array de dados a ser enviado neste pacote.
      * @return O array do pacote já alocado e pronto a ser enviado pelo Socket.
      */
-    public static byte[] gerarPacoteDados(int numSeq, byte[] dadosByte) {
+    static byte[] gerarPacoteDados(int numSeq, byte[] dadosByte) {
         return ByteBuffer.allocate(headerPDU + dadosByte.length).putInt(numSeq).put(dadosByte).array();
     }
 
@@ -26,7 +26,7 @@ public class PacoteUDP {
      * @param numACK O nº ACK do pacote a ser criado.
      * @return O array do pacote já alocado e pronto a ser enviado pelo Socket.
      */
-    public static byte[] gerarPacoteACK(int numACK) {
+    static byte[] gerarPacoteACK(int numACK) {
         return ByteBuffer.allocate(headerPDU).putInt(numACK).array();
     }
 
@@ -35,7 +35,7 @@ public class PacoteUDP {
      * @param pacote O pacote para o qual se quer obter o ACK.
      * @return O ACK do pacote.
      */
-    public static int getACK(byte[] pacote) {
+    static int getACK(byte[] pacote) {
         return ByteBuffer.wrap(Arrays.copyOfRange(pacote,0,headerPDU)).getInt();
     }
 }

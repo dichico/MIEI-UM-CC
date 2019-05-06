@@ -9,31 +9,31 @@ import java.util.concurrent.Semaphore;
  * @version 1.5
  */
 
-public class Cliente {
+class Cliente {
 
     /** Variável predefinida como o cabeçalho do pacote. **/
-    static final int headerPDU = 4;
+    private static final int headerPDU = 4;
 
     /** Variável predefinida como o tamanho total do pacote. **/
-    static final int tamanhoPDU = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
+    private static final int tamanhoPDU = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
 
     /** Variável predefinida como o tamanho total da "janela deslizante". **/
-    static final int windowSize = 10;
+    private static final int windowSize = 10;
 
     /** Variável para guardar o nº da janela corrente. **/
-    int base;
+    private int base;
     /** Variável para guardar o próximo nº de sequência. **/
-    int proxNumSeq;
+    private int proxNumSeq;
     /** O caminho/diretoria do ficheiro que será enviado. **/
-    String caminho;     //diretoria + nome do arquivo.
+    private final String caminho;     //diretoria + nome do arquivo.
     /** Variável para guardar a lista de pacotes da janela deslizante. **/
-    List<byte[]> listaPacotes;
+    private final List<byte[]> listaPacotes;
     /** Temporizador a ser usado em caso de falha de resposta. **/
-    Timer temporizador; // temporizador para a espera de resposta.
+    private Timer temporizador; // temporizador para a espera de resposta.
 
-    Semaphore acesso;
+    private final Semaphore acesso;
     /** Booleano final para confirmar se a transferência ocorreu. **/
-    boolean transferenciaCompleta;
+    private boolean transferenciaCompleta;
 
     /**
      * Construtor parametrizado para a criação do Cliente que irá fazer PUT no servidor.
@@ -42,7 +42,7 @@ public class Cliente {
      * @param localDisco A diretoria do ficheiro a ser enviado.
      * @param enderecoIP Endereço IP do servidor a enviar o ficheiro.
      */
-    public Cliente(int portaDestino, int portaEntrada, String localDisco, String enderecoIP) {
+    Cliente(int portaDestino, int portaEntrada, String localDisco, String enderecoIP) {
         base = 0;
         proxNumSeq = 0;
         this.caminho = localDisco;
@@ -72,7 +72,7 @@ public class Cliente {
     /**
      * Classe interna para a criação do Temporizador e a sua execução.
      */
-    public class Temporizador extends TimerTask {
+    class Temporizador extends TimerTask {
 
         /**
          * Método necessário para correr, vindo da interface Runnable do Java.
@@ -93,7 +93,7 @@ public class Cliente {
      * Método para controlar o Temporizador.
      * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
      */
-    public void modificarTemporizador(boolean novoTimer) {
+    private void modificarTemporizador(boolean novoTimer) {
         if (temporizador != null) {
             temporizador.cancel();
         }
@@ -106,10 +106,10 @@ public class Cliente {
     /**
      * A classe interna para enviar informações para o servidor em modo Thread.
      */
-    public class ThreadSaida extends Thread {
+    class ThreadSaida extends Thread {
  
-        private DatagramSocket socketSaida;
-        private int portaDestino;
+        private final DatagramSocket socketSaida;
+        private final int portaDestino;
         private InetAddress enderecoIP;
 
         /**
@@ -119,7 +119,7 @@ public class Cliente {
          * @param enderecoIP O endereço IP do servidor para onde serão enviados os pacotes.
          * @throws UnknownHostException Uma exceção para quando não se conhece o endereço IP fornecido.
          */
-        public ThreadSaida(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
+        ThreadSaida(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
             this.socketSaida = socketSaida;
             this.portaDestino = portaDestino;
             this.enderecoIP = InetAddress.getByName(enderecoIP);
@@ -138,7 +138,7 @@ public class Cliente {
                             if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
                                 modificarTemporizador(true);
                             }
-                            byte[] enviaDados = new byte[headerPDU];
+                            byte[] enviaDados;
                             boolean ultimoNumSeq = false;
 
                             if (proxNumSeq < listaPacotes.size()) {
@@ -184,15 +184,15 @@ public class Cliente {
     /**
      * A classe interna para receber os pacotes de ACK enviados pelo servidor em modo Thread.
      */
-    public class ThreadEntrada extends Thread {
+    class ThreadEntrada extends Thread {
  
-        private DatagramSocket socketEntrada;
+        private final DatagramSocket socketEntrada;
 
         /**
          * Construtor parametrizado para a criação do Thread de Entrada.
          * @param socketEntrada O socket para onde irá entrar os pacotes ACK do servidor.
          */
-        public ThreadEntrada(DatagramSocket socketEntrada) {
+        ThreadEntrada(DatagramSocket socketEntrada) {
             this.socketEntrada = socketEntrada;
         }
 
