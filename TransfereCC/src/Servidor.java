@@ -45,52 +45,58 @@ class Servidor extends PacoteUDP {
  
                 FileOutputStream fileStream = null;
 
-                // ciclo a decorrer durante a transferência.
+                // Ciclo que é executado até transferência ser efetuada.
                 while (!transferCompleta) {
 
-                    // Receber o pacote vindo do Cliente.
+                    // Recebe o pacote vindo do Cliente.
                     socketEntrada.receive(recebePacote);
                     InetAddress ipAddress = recebePacote.getAddress();
 
-                    // receber o nº de sequência através da leitura do header do pacote.
+                    // Retira o número de sequência do pacote recebido.
+                    // Obtém esse número retirando apenas a parte do cabeçalho do pacote.
                     int seqACK = ByteBuffer.wrap(recebeDados, 0, headerPDU).getInt();
                     System.out.println("Servidor: Numero de sequencia recebido " + seqACK);
  
-                    //se o pacote for recebido em ordem
+                    // Se pacote foi recebido de forma ordenada.
                     if (seqACK == proxNumACK) {
-                        //se for ultimo pacote (sem dados), enviar ack para encerrar o processo de transferencia
+
+                        // Se pacote é o primerio de toda a sequência.
+                        if (seqACK == 0 && ultimoNumSeq == -1) {
+                            // Criar o ficheiro em si.
+                            fileStream = new FileOutputStream(new File(localDisco));
+                        }
+
+                        // Se pacote é o último (não há mais dados) - enviar ACK -5 que define fim de transferência.
                         if (recebePacote.getLength() == headerPDU) {
 
                             byte[] pacoteFinal = gerarPacoteACK(-5);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteFinal, pacoteFinal.length, ipAddress, portaDestino));
                             transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Ficheiro recebido e criado!");
-                        } else {
-                            // atualiza proximo numero de sequencia à base do tamanho do pacote.
-                            proxNumACK = seqACK + tamanhoPDU - headerPDU;
-                            // envia o ACK de que recebeu aquele nº de sequência.
+                        }
+
+                        // Se pacote nem é o último nem o primeiro.
+                        else {
+                            // Atualiza o próximo número de sequência à base do tamanho do pacote.
+                            proxNumACK = seqACK + (tamanhoPDU - headerPDU);
+                            // Envia o ACK de que recebeu aquele número de sequência.
                             byte[] pacoteACK = gerarPacoteACK(proxNumACK);
                             socketSaida.send(new DatagramPacket(pacoteACK, pacoteACK.length, ipAddress, portaDestino));
 
                             System.out.println("Servidor: ACK enviado " + proxNumACK);
                         }
- 
-                        //se for o primeiro pacote da transferencia 
-                        if (seqACK == 0 && ultimoNumSeq == -1) {
-                            //cria ficheiro
-                            fileStream = new FileOutputStream(new File(localDisco));
-                        }
-                        //escreve dados no ficheiro
-                        fileStream.write(recebeDados, headerPDU, recebePacote.getLength() - headerPDU);
- 
-                        ultimoNumSeq = seqACK; //atualiza o ultimo numero de sequencia enviado/recebido
 
-                    } else {    //se pacote estiver fora de ordem, mandar duplicado
+                        // Escreve os dados no ficheiro.
+                        fileStream.write(recebeDados, headerPDU, recebePacote.getLength() - headerPDU);
+                        ultimoNumSeq = seqACK; // Atualiza o último número de sequência enviado/recebido.
+                    }
+
+                    // Se pacote foi recebido de forma desordenada - torna a mandar (duplicado).
+                    else {
                         byte[] pacoteAck = gerarPacoteACK(ultimoNumSeq);
                         socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                         System.out.println("Servidor: Ack duplicado enviado " + ultimoNumSeq);
                     }
- 
                 }
                 fileStream.close();
             } catch (Exception e) {
