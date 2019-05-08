@@ -3,7 +3,7 @@ import java.util.Scanner;
 /**
  * Classe responsável por ler os comandos e executá-los.
  * @author Diogo Araújo, Diogo Nogueira
- * @author Java Tutorial UDP
+ * @author Java Tutorial UDP Thread
  * @version 1.4
  */
 class TransfereCMD {

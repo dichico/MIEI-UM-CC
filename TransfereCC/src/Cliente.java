@@ -6,6 +6,7 @@ import java.util.concurrent.Semaphore;
 /**
  * Source-Code para a classe Cliente.
  * @author Diogo Araújo, Diogo Nogueira
+ * @author Java Tutorial UDP Thread
  * @version 1.5
  */
 
@@ -15,10 +16,10 @@ class Cliente {
     private static final int headerPDU = 4;
 
     /** Variável predefinida como o tamanho total do pacote. **/
-    private static final int tamanhoPDU = 1000;  // numSeq = 4Bytes e dados=1000Bytes - 1004Bytes total Pacote.
+    private static final int tamanhoPDU = 1000;  // numSeq = 4Bytes e dados=1000Bytes -> 1004Bytes total Pacote.
 
     /** Variável predefinida como o tamanho total da "janela deslizante". **/
-    private static final int windowSize = 10;
+    private static final int windowSize = 5;
 
     /** Variável para guardar o nº da janela corrente. **/
     private int base;
@@ -35,7 +36,7 @@ class Cliente {
     /** Temporizador a ser usado em caso de falha de resposta. **/
     private Timer temporizador; // temporizador para a espera de resposta.
 
-    private final Semaphore acesso;
+    private final Semaphore permissao;
 
     /** Booleano final para confirmar se a transferência foi concluída. **/
     private boolean transferenciaCompleta;
@@ -54,7 +55,7 @@ class Cliente {
         listaPacotes = new ArrayList<>(windowSize);
         transferenciaCompleta = false;
         DatagramSocket socketSaida, socketEntrada;
-        acesso = new Semaphore(1);
+        permissao = new Semaphore(1);
         System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", localDisco: " + localDisco);
  
         try {
@@ -65,8 +66,8 @@ class Cliente {
             socketSaida = new DatagramSocket();
 
             // Criação das threads que depois vão processar os dados enviados e recebidos.
-            ThreadEntrada threadACK = new ThreadEntrada(socketEntrada);
-            ThreadSaida threadPacotes = new ThreadSaida(socketSaida, portaDestino, enderecoIP);
+            Thread9999 threadACK = new Thread9999(socketEntrada);
+            Thread7777 threadPacotes = new Thread7777(socketSaida, portaDestino, enderecoIP);
 
             // Inicialização das threads.
             threadACK.start();
@@ -85,14 +86,14 @@ class Cliente {
 
         /**
          * Método necessário para correr, vindo da interface Runnable do Java.
-         * Com este método conseguimos dar acesso às outras threads em termos de janela deslizante.
+         * Com este método conseguimos dar permissao às outras threads em termos de janela deslizante.
          */
         public void run() {
             try {
-                acesso.acquire();
+                permissao.acquire();
                 System.out.println("Cliente: Tempo em espera demasiado.");
                 proxNumSeq = base;  // Faz reset ao número de sequência.
-                acesso.release();
+                permissao.release();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -103,20 +104,20 @@ class Cliente {
      * Método para controlar o Temporizador.
      * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
      */
-    private void modificarTemporizador(boolean novoTimer) {
+    private void flagTempo(boolean novoTimer) {
         if (temporizador != null) {
             temporizador.cancel();
         }
         if (novoTimer) {
             temporizador = new Timer();
-            temporizador.schedule(new Temporizador(), 1000); // criação de novo timer com 1000 milisegundos, ou seja, 1 segundo.
+            temporizador.schedule(new Temporizador(), 5000); // criação de novo timer com 5000 milisegundos, ou seja, 5 segundo.
         }
     }
 
     /**
      * A classe interna para enviar informações para o servidor em modo Thread.
      */
-    class ThreadSaida extends Thread {
+    class Thread7777 extends Thread {
  
         private final DatagramSocket socketSaida;
         private final int portaDestino;
@@ -129,7 +130,7 @@ class Cliente {
          * @param enderecoIP O endereço IP do servidor para onde serão enviados os pacotes.
          * @throws UnknownHostException Uma exceção para quando não se conhece o endereço IP fornecido.
          */
-        ThreadSaida(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
+        Thread7777(DatagramSocket socketSaida, int portaDestino, String enderecoIP) throws UnknownHostException {
             this.socketSaida = socketSaida;
             this.portaDestino = portaDestino;
             this.enderecoIP = InetAddress.getByName(enderecoIP);
@@ -145,12 +146,12 @@ class Cliente {
                     while (!transferenciaCompleta) {    // Envia pacotes ao Servidor caso a janela nao esteja cheia.
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
 
-                            // Bloqueia o acesso para a thread/pacote.
-                            acesso.acquire();
+                            // Bloqueia o permissao para a thread/pacote.
+                            permissao.acquire();
 
-                            // Se o pacote é o primeiro da janela deslizante - incia temporizador.
+                            // Se o pacote é o primeiro da janela deslizante - inicia temporizador.
                             if (base == proxNumSeq) {
-                                modificarTemporizador(true);
+                                flagTempo(true);
                             }
 
                             byte[] enviaDados;
@@ -180,15 +181,15 @@ class Cliente {
                                 proxNumSeq += tamanhoPDU;
                             }
 
-                            // Liberta acesso para as outras threads/pacotes.
-                            acesso.release();
+                            // Liberta permissao para as outras threads/pacotes.
+                            permissao.release();
                         }
                         sleep(5);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    modificarTemporizador(false);
+                    flagTempo(false);
                     socketSaida.close();
                     System.out.println("Cliente: Socket de saida fechado!");
                 }
@@ -202,7 +203,7 @@ class Cliente {
     /**
      * A classe interna para receber os pacotes de ACK enviados pelo servidor em modo Thread.
      */
-    class ThreadEntrada extends Thread {
+    class Thread9999 extends Thread {
  
         private final DatagramSocket socketEntrada;
 
@@ -210,7 +211,7 @@ class Cliente {
          * Construtor parametrizado para a criação do Thread de Entrada.
          * @param socketEntrada O socket para onde irá entrar os pacotes ACK do servidor.
          */
-        ThreadEntrada(DatagramSocket socketEntrada) {
+        Thread9999(DatagramSocket socketEntrada) {
             this.socketEntrada = socketEntrada;
         }
 
@@ -238,12 +239,12 @@ class Cliente {
                         if (base == numACK + tamanhoPDU) {
                             System.out.println("ACK duplicado.");
 
-                            // Bloqueia o acesso para a thread/pacote.
-                            acesso.acquire();
-                            modificarTemporizador(false); // Cancelar o temporizador.
+                            // Bloqueia o permissao para a thread/pacote.
+                            permissao.acquire();
+                            flagTempo(false); // Cancelar o temporizador.
                             proxNumSeq = base;
-                            // Liberta acesso para outras threads/pacotes.
-                            acesso.release();
+                            // Liberta permissao para outras threads/pacotes.
+                            permissao.release();
                         }
 
                         // Caso o pacote ACK tenha número -5.
@@ -257,15 +258,15 @@ class Cliente {
                             // Avanço do pacote base da janela para o numACK + os 1000 de tamanho.
                             base = numACK + tamanhoPDU;
 
-                            // Bloqueia o acesso para a thread/pacote.
-                            acesso.acquire();
+                            // Bloqueia o permissao para a thread/pacote.
+                            permissao.acquire();
                             if (base == proxNumSeq) {
-                                modificarTemporizador(false);
+                                flagTempo(false);
                             } else {
-                                modificarTemporizador(true);
+                                flagTempo(true);
                             }
-                            // Liberta acesso para outras threads/pacotes.
-                            acesso.release();
+                            // Liberta permissao para outras threads/pacotes.
+                            permissao.release();
                         }
                     }
                 } catch (Exception e) {

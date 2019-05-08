@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
  * @author Diogo Araújo, Diogo Nogueira
  * @version 1.5
  */
-class Servidor extends PacoteUDP {
+class Servidor {
 
     /** Variável predefinida como o cabeçalho do pacote. **/
     private static final int headerPDU = 4; // Inteiro são 4.
@@ -71,7 +71,7 @@ class Servidor extends PacoteUDP {
                         // Se pacote é o último (não há mais dados) - enviar ACK -5 que define fim de transferência.
                         if (recebePacote.getLength() == headerPDU) {
 
-                            byte[] pacoteFinal = gerarPacoteACK(-5);     //ack de encerramento
+                            byte[] pacoteFinal = PacoteUDP.gerarPacoteACK(-5);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteFinal, pacoteFinal.length, ipAddress, portaDestino));
                             System.out.println("Servidor: ACK final enviado " + -5);
                             transferCompleta = true;
@@ -82,7 +82,7 @@ class Servidor extends PacoteUDP {
                             // Atualiza o próximo número de sequência à base do tamanho do pacote.
                             proxNumACK = seqACK + (tamanhoPDU - headerPDU);
                             // Envia o ACK de que recebeu aquele número de sequência.
-                            byte[] pacoteACK = gerarPacoteACK(proxNumACK);
+                            byte[] pacoteACK = PacoteUDP.gerarPacoteACK(proxNumACK);
                             socketSaida.send(new DatagramPacket(pacoteACK, pacoteACK.length, ipAddress, portaDestino));
 
                             System.out.println("Servidor: ACK enviado " + proxNumACK);
@@ -95,7 +95,7 @@ class Servidor extends PacoteUDP {
 
                     // Se pacote foi recebido de forma desordenada - torna a mandar (duplicado).
                     else {
-                        byte[] pacoteAck = gerarPacoteACK(ultimoNumSeq);
+                        byte[] pacoteAck = PacoteUDP.gerarPacoteACK(ultimoNumSeq);
                         socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
                         System.out.println("Servidor: Ack duplicado enviado " + ultimoNumSeq);
                     }
