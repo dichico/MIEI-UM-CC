@@ -131,7 +131,7 @@ class Cliente {
         public void run() {
             try {
 
-                try (FileInputStream fis = new FileInputStream(new File(caminho))) {
+                try (FileInputStream ficheiro = new FileInputStream(new File(caminho))) {
                     while (!transferenciaCompleta) {    //envia pacotes se a janela nao estiver cheia
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
                             acesso.acquire();
@@ -145,7 +145,7 @@ class Cliente {
                                 enviaDados = listaPacotes.get(proxNumSeq);
                             } else {
                                 byte[] dataBuffer = new byte[tamanhoPDU];
-                                int tamanhoDados = fis.read(dataBuffer, 0, tamanhoPDU);
+                                int tamanhoDados = ficheiro.read(dataBuffer, 0, tamanhoPDU);
                                 if (tamanhoDados == -1) {   //sem dados para enviar, envia pacote vazio
                                     ultimoNumSeq = true;
                                     enviaDados = PacoteUDP.gerarPacoteDados(proxNumSeq, new byte[0]);

@@ -63,11 +63,12 @@ class Servidor extends PacoteUDP {
 
                             byte[] pacoteFinal = gerarPacoteACK(-5);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteFinal, pacoteFinal.length, ipAddress, portaDestino));
+                            System.out.println("Servidor: ACK final enviado " + -5);
                             transferCompleta = true;
                             System.out.println("Servidor: Todos pacotes foram recebidos! Ficheiro recebido e criado!");
                         } else {
                             // atualiza proximo numero de sequencia à base do tamanho do pacote.
-                            proxNumACK = seqACK + tamanhoPDU - headerPDU;
+                            proxNumACK = seqACK + (tamanhoPDU - headerPDU);
                             // envia o ACK de que recebeu aquele nº de sequência.
                             byte[] pacoteACK = gerarPacoteACK(proxNumACK);
                             socketSaida.send(new DatagramPacket(pacoteACK, pacoteACK.length, ipAddress, portaDestino));

@@ -5,10 +5,11 @@ import java.util.Arrays;
 /**
  * Classe para as funções principais da criação do pacote de dados ou apenas de ACK.
  * @author Diogo Araújo, Diogo Nogueira
- * @version 1.0
+ * @version 2.0
  */
 class PacoteUDP {
 
+    /** A variável final a indicar o "cabeçalho" do pacote a utilizar **/
     private static final int headerPDU = 4;
 
     /**
