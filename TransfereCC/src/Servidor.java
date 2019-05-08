@@ -17,8 +17,8 @@ class Servidor extends PacoteUDP {
 
     /**
      * Construtor parametrizado para a criação do Servidor (GET)
-     * @param portaEntrada Porta UDP usada para receber o(s) pacote(s) UDP. (7777)
-     * @param portaDestino Porta ACK usada para enviar os pacotes ACK durante a transferência. (9999)
+     * @param portaEntrada Porta UDP usada para receber o(s) pacote(s) UDP (7777).
+     * @param portaDestino Porta ACK usada para enviar os pacotes ACK durante a transferência (9999).
      * @param localDisco A diretoria para onde o ficheiro a ser recebido irá ser colocado.
      */
     public Servidor(int portaEntrada, int portaDestino, String localDisco) {
@@ -33,6 +33,8 @@ class Servidor extends PacoteUDP {
 
         try {
             // Criação dos Sockets de Entrada e Saída.
+            // Servidor vai receber pacotes UPD do Cliente pelo socketEntrada.
+            // Servidor vai mandar pacotes ACK do Cliente pelo socketSaida.
             socketEntrada = new DatagramSocket(portaEntrada);
             socketSaida = new DatagramSocket();
 

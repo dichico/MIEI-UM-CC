@@ -15,30 +15,35 @@ class Cliente {
     private static final int headerPDU = 4;
 
     /** Variável predefinida como o tamanho total do pacote. **/
-    private static final int tamanhoPDU = 1000;  // (numSeq:4, dados=1000) Bytes : 1004 Bytes total
+    private static final int tamanhoPDU = 1000;  // numSeq = 4Bytes e dados=1000Bytes - 1004Bytes total Pacote.
 
     /** Variável predefinida como o tamanho total da "janela deslizante". **/
     private static final int windowSize = 10;
 
     /** Variável para guardar o nº da janela corrente. **/
     private int base;
+
     /** Variável para guardar o próximo nº de sequência. **/
     private int proxNumSeq;
+
     /** O caminho/diretoria do ficheiro que será enviado. **/
-    private final String caminho;     //diretoria + nome do arquivo.
+    private final String caminho;     // diretoria + nome do arquivo.
+
     /** Variável para guardar a lista de pacotes da janela deslizante. **/
     private final List<byte[]> listaPacotes;
+
     /** Temporizador a ser usado em caso de falha de resposta. **/
     private Timer temporizador; // temporizador para a espera de resposta.
 
     private final Semaphore acesso;
-    /** Booleano final para confirmar se a transferência ocorreu. **/
+
+    /** Booleano final para confirmar se a transferência foi concluída. **/
     private boolean transferenciaCompleta;
 
     /**
      * Construtor parametrizado para a criação do Cliente que irá fazer PUT no servidor.
-     * @param portaDestino Porta UDP que o servidor tem aberta para receber o(s) pacote(s) UDP (7777)
-     * @param portaEntrada Porta ACK usada para receber os pacotes ACK vindos do servidor durante a transferência (9999)
+     * @param portaDestino Porta UDP que o servidor tem aberta para receber o(s) pacote(s) UDP (7777).
+     * @param portaEntrada Porta ACK usada para receber os pacotes ACK vindos do servidor durante a transferência (9999).
      * @param localDisco A diretoria do ficheiro a ser enviado.
      * @param enderecoIP Endereço IP do servidor a enviar o ficheiro.
      */
@@ -53,13 +58,17 @@ class Cliente {
         System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", localDisco: " + localDisco);
  
         try {
-            // criando sockets
-            socketSaida = new DatagramSocket();
+            // Criação dos Sockets de Entrada e Saída.
+            // Cliente vai receber pacotes ACK do Servidor pelo socketEntrada.
+            // Cliente vai enviar pacotes UPD para o Servidor pelo socketSaida.
             socketEntrada = new DatagramSocket(portaEntrada);
- 
-            // criando threads para processar os dados enviados e recebidos.
+            socketSaida = new DatagramSocket();
+
+            // Criação das threads que depois vão processar os dados enviados e recebidos.
             ThreadEntrada threadACK = new ThreadEntrada(socketEntrada);
             ThreadSaida threadPacotes = new ThreadSaida(socketSaida, portaDestino, enderecoIP);
+
+            // Inicialização das threads.
             threadACK.start();
             threadPacotes.start();
  
@@ -76,12 +85,13 @@ class Cliente {
 
         /**
          * Método necessário para correr, vindo da interface Runnable do Java.
+         * Com este método conseguimos dar acesso às outras threads em termos de janela deslizante.
          */
         public void run() {
             try {
                 acesso.acquire();
                 System.out.println("Cliente: Tempo em espera demasiado.");
-                proxNumSeq = base;  //reseta numero de sequencia
+                proxNumSeq = base;  // Faz reset ao número de sequência.
                 acesso.release();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -114,7 +124,7 @@ class Cliente {
 
         /**
          * Construtor parametrizado para a criação do objeto de ThreadSaída.
-         * @param socketSaida O socket para onde irá sair os pacotes para o servidor.
+         * @param socketSaida O socket para onde irá sair os pacotes para o Servidor.
          * @param portaDestino A porta do servidor para onde serão enviados os pacotes.
          * @param enderecoIP O endereço IP do servidor para onde serão enviados os pacotes.
          * @throws UnknownHostException Uma exceção para quando não se conhece o endereço IP fornecido.
@@ -132,12 +142,18 @@ class Cliente {
             try {
 
                 try (FileInputStream fis = new FileInputStream(new File(caminho))) {
-                    while (!transferenciaCompleta) {    //envia pacotes se a janela nao estiver cheia
+                    while (!transferenciaCompleta) {    // Envia pacotes ao Servidor caso a janela nao esteja cheia.
+
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
+
+                            // Bloqueia o acesso para a thread/pacote.
                             acesso.acquire();
-                            if (base == proxNumSeq) {   //se for primeiro pacote da janela, inicia temporizador
+
+                            // Se o pacote é o primeiro da janela deslizante - incia temporizador.
+                            if (base == proxNumSeq) {
                                 modificarTemporizador(true);
                             }
+
                             byte[] enviaDados;
                             boolean ultimoNumSeq = false;
 
@@ -155,14 +171,17 @@ class Cliente {
                                 }
                                 listaPacotes.add(enviaDados);
                             }
-                            //enviando pacotes
+
+                            // Envia o pacote de dados para o Servidor consoante o número de ACK que recebeu do mesmo.
                             socketSaida.send(new DatagramPacket(enviaDados, enviaDados.length, enderecoIP, portaDestino));
                             System.out.println("Cliente: Numero de sequencia enviado " + proxNumSeq);
 
-                            //atualiza numero de sequencia se nao estiver no fim
+                            // Atualiza número de sequência caso não esteja no fim.
                             if (!ultimoNumSeq) {
                                 proxNumSeq += tamanhoPDU;
                             }
+
+                            // Liberta acesso para as outras threads/pacotes.
                             acesso.release();
                         }
                         sleep(5);
@@ -202,7 +221,8 @@ class Cliente {
         public void run() {
             try {
 
-                byte[] recebeDados = new byte[headerPDU];  //pacote ACK sem dados
+                // Preparação do pacote ACK vindo do Servidor.
+                byte[] recebeDados = new byte[headerPDU];
 
                 DatagramPacket pacoteRecebido = new DatagramPacket(recebeDados, recebeDados.length);
 
@@ -211,28 +231,41 @@ class Cliente {
 
                         socketEntrada.receive(pacoteRecebido);
 
+                        // Obtém o número ACK do pacote que recebeu do Servidor.
                         int numACK = PacoteUDP.getACK(recebeDados);
                         System.out.println("Cliente: ACK RECEBIDO " + numACK);
 
-                        //se for ACK duplicado
+                        // Se o pacote ACK recebido for duplicado.
                         if (base == numACK + tamanhoPDU) {
                             System.out.println("ACK duplicado.");
+
+                            // Bloqueia o acesso para a thread/pacote.
                             acesso.acquire();
-                            modificarTemporizador(false); // cancelar o temporizador
+                            modificarTemporizador(false); // Cancelar o temporizador.
                             proxNumSeq = base;
+                            // Liberta acesso para outras threads/pacotes.
                             acesso.release();
-                        } else if (numACK == -5) {
+                        }
+
+                        // Caso o pacote ACK tenha número -5.
+                        // Último pacote - transferência completa.
+                        if (numACK == -5) {
                             transferenciaCompleta = true;
-                        } //ACK normal
+                        }
+
+                        // Caso seja um pacote normal.
                         else {
-                            // avançar a janela para o numACK mais o tamanho.
+                            // Avanço do pacote base da janela para o numACK + os 1000 de tamanho.
                             base = numACK + tamanhoPDU;
+
+                            // Bloqueia o acesso para a thread/pacote.
                             acesso.acquire();
                             if (base == proxNumSeq) {
                                 modificarTemporizador(false);
                             } else {
                                 modificarTemporizador(true);
                             }
+                            // Liberta acesso para outras threads/pacotes.
                             acesso.release();
                         }
                     }
