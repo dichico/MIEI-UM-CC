@@ -27,11 +27,11 @@ class Cliente {
     /** Variável para guardar o próximo nº de sequência. **/
     private int proxNumSeq;
 
-    /** O diretoriaDestino/diretoria do ficheiro que será enviado. **/
-    private final String diretoriaDestino;     // diretoria + nome do arquivo.
+    /** A diretoria (nome do ficheiro inclusive) do ficheiro que será enviado. **/
+    private final String diretoriaDestino;
 
     /** Temporizador a ser usado em caso de falha de resposta. **/
-    private Timer temporizador; // temporizador para a espera de resposta.
+    private Timer temporizador;
     private final Semaphore permissao;
 
     /** Booleano final para confirmar se a transferência foi concluída. **/
