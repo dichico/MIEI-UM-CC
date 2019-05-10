@@ -75,7 +75,7 @@ class Servidor {
                     // Se pacote foi recebido de forma ordenada.
                     if (seqACK == proxNumACK) {
 
-                        // Se pacote é o primerio de toda a sequência.
+                        // Se pacote é o primeiro de toda a sequência.
                         if (seqACK == 0 && ultimoNumSeq == -1) {
                             // Criar o ficheiro em si.
                             fileStream = new FileOutputStream(new File(localDisco));
