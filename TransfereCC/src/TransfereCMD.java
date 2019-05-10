@@ -8,9 +8,10 @@ import java.util.Scanner;
  */
 class TransfereCMD {
 
-    /** Porta UDP. **/
+    /** Porta UDP para troca dos pacotes em si. **/
     private static final int portaUDP = 7777;
-    /** Porta de Estado (para trocas dos ACK). **/
+
+    /** Porta ACK para troca dos Acknowledgement. **/
     private static final int portaEstado = 9999;
 
     /**
