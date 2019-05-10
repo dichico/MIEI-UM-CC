@@ -19,7 +19,7 @@ class Cliente {
     /** Variável predefinida como o tamanho total da janela deslizante. **/
     /** Variável para guardar a lista de pacotes da janela deslizante. **/
     private int numSeqBaseJanela;
-    private static final int quantMaxJanelaDeslizante = 5;
+    private static final int quantMaxJanela = 5;
     private final List<byte[]> pacotesJanelaDeslizante;
 
     /** Variável para guardar o próximo nº de sequência. **/
@@ -49,7 +49,7 @@ class Cliente {
 
         numSeqBaseJanela = 0;
         numeroSequenciaEnviar = 0;
-        pacotesJanelaDeslizante = new ArrayList<>(quantMaxJanelaDeslizante);
+        pacotesJanelaDeslizante = new ArrayList<>(quantMaxJanela);
 
         this.nomeDiretoriaFicheiro = localDisco;
 
@@ -70,7 +70,7 @@ class Cliente {
 
             // Criação dos Sockets de Rececao e Envio.
             // Cliente vai receber pacotes ACK do Servidor pelo socketRececao.
-            // Cliente vai enviar pacotes UPD para o Servidor pelo socketEnvio.
+            // Cliente vai enviar pacotes UDP para o Servidor pelo socketEnvio.
             socketRececao = new DatagramSocket(portaACK);
             socketEnvio = new DatagramSocket();
 
@@ -102,9 +102,9 @@ class Cliente {
             try {
                 permissaoThread.acquire();
 
-                StringBuilder tempoExcedio = new StringBuilder("Cliente > Base Janela Deslizante mantida.");
-                tempoExcedio.append("Tempo de espera esgotado.");
-                System.out.println(tempoExcedio);
+                StringBuilder tempoExcedido = new StringBuilder("Cliente > Base Janela Deslizante mantida.");
+                tempoExcedido.append("Tempo de espera esgotado.");
+                System.out.println(tempoExcedido);
 
                 numeroSequenciaEnviar = numSeqBaseJanela;
 

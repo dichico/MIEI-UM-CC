@@ -30,7 +30,7 @@ class Servidor {
         try {
 
             // Criação dos Sockets de Rececao e Envio.
-            // Servidor vai receber pacotes UPD do Cliente pelo socketRececao.
+            // Servidor vai receber pacotes UDP do Cliente pelo socketRececao.
             // Servidor vai mandar pacotes ACK do Cliente pelo socketEnvio.
             socketRececao = new DatagramSocket(portaUDP);
             socketEnvio = new DatagramSocket();
