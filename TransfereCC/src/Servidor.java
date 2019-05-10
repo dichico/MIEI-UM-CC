@@ -25,8 +25,6 @@ class Servidor {
 
         DatagramSocket socketEntrada, socketSaida;
 
-        System.out.println("Servidor com porta UDP: " + portaEntrada);
- 
         int ultimoNumSeq = -1;
         int proxNumACK = 0;  
         boolean transferCompleta = false; 
@@ -38,7 +36,12 @@ class Servidor {
             socketEntrada = new DatagramSocket(portaEntrada);
             socketSaida = new DatagramSocket();
 
-            System.out.println("Conexão Estabelecida.");
+            StringBuilder estabelecimentoConexao = new StringBuilder("Conexão Servidor Estabelecida");
+            estabelecimentoConexao.append("\n");
+            estabelecimentoConexao.append("Porta Entrada dos Dados - ");
+            estabelecimentoConexao.append(portaEntrada);
+            estabelecimentoConexao.append("\n");
+            System.out.println(estabelecimentoConexao);
 
             try {
                 // Preparação do pacote de dados vindo do Cliente.
@@ -57,8 +60,18 @@ class Servidor {
                     // Retira o número de sequência do pacote recebido.
                     // Obtém esse número retirando apenas a parte do cabeçalho do pacote.
                     int seqACK = ByteBuffer.wrap(recebeDados, 0, headerPDU).getInt();
-                    System.out.println("Servidor: Numero de sequencia recebido " + seqACK);
- 
+
+                    if(seqACK==0){
+                        System.out.println("Pacote Inicial Recebido. Servidor pode começar o seu pedido.");
+                    }
+                    else{
+                        StringBuilder pacoteRecebido = new StringBuilder("Servidor > ");
+                        pacoteRecebido.append("Pacote número ");
+                        pacoteRecebido.append(seqACK);
+                        pacoteRecebido.append(" recebido.");
+                        System.out.println(pacoteRecebido);
+                    }
+
                     // Se pacote foi recebido de forma ordenada.
                     if (seqACK == proxNumACK) {
 
@@ -73,9 +86,9 @@ class Servidor {
 
                             byte[] pacoteFinal = PacoteUDP.gerarPacoteACK(-5);     //ack de encerramento
                             socketSaida.send(new DatagramPacket(pacoteFinal, pacoteFinal.length, ipAddress, portaDestino));
-                            System.out.println("Servidor: ACK final enviado " + -5);
+                            System.out.println("Servidor > ACK final " + -5);
                             transferCompleta = true;
-                            System.out.println("Servidor: Todos pacotes foram recebidos! Ficheiro recebido e criado!");
+                            System.out.println("Servidor > Ficheiro totalmente recebido.");
                         }
                         // Se pacote nem é o último nem o primeiro.
                         else {
@@ -85,7 +98,7 @@ class Servidor {
                             byte[] pacoteACK = PacoteUDP.gerarPacoteACK(proxNumACK);
                             socketSaida.send(new DatagramPacket(pacoteACK, pacoteACK.length, ipAddress, portaDestino));
 
-                            System.out.println("Servidor: ACK enviado " + proxNumACK);
+                            System.out.println("Servidor > ACK enviado " + proxNumACK);
                         }
 
                         // Escreve os dados no ficheiro.
@@ -97,7 +110,7 @@ class Servidor {
                     else {
                         byte[] pacoteAck = PacoteUDP.gerarPacoteACK(ultimoNumSeq);
                         socketSaida.send(new DatagramPacket(pacoteAck, pacoteAck.length, ipAddress, portaDestino));
-                        System.out.println("Servidor: Ack duplicado enviado " + ultimoNumSeq);
+                        System.out.println("Servidor > Ack duplicado " + ultimoNumSeq);
                     }
                 }
                 fileStream.close();
@@ -107,8 +120,7 @@ class Servidor {
             } finally {
                 socketEntrada.close();
                 socketSaida.close();
-                System.out.println("Servidor: Socket de entrada fechado!");
-                System.out.println("Servidor: Socket de saida fechado!");
+                System.out.println("Servidor > Conexão encerrada.");
             }
         } catch (SocketException e1) {
             e1.printStackTrace();

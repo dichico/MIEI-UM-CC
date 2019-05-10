@@ -6,36 +6,32 @@ import java.util.concurrent.Semaphore;
 /**
  * Source-Code para a classe Cliente.
  * @author Diogo Araújo, Diogo Nogueira
- * @author Java Tutorial UDP Thread
+ * @author Java Tutorial UDP Threads
  * @version 1.5
  */
 
 class Cliente {
 
     /** Variável predefinida como o cabeçalho do pacote. **/
-    private static final int headerPDU = 4;
-
     /** Variável predefinida como o tamanho total do pacote. **/
+    private static final int headerPDU = 4;
     private static final int tamanhoPDU = 1000;  // numSeq = 4Bytes e dados=1000Bytes -> 1004Bytes total Pacote.
 
-    /** Variável predefinida como o tamanho total da "janela deslizante". **/
-    private static final int windowSize = 5;
-
     /** Variável para guardar o nº da janela corrente. **/
+    /** Variável predefinida como o tamanho total da "janela deslizante". **/
+    /** Variável para guardar a lista de pacotes da janela deslizante. **/
     private int base;
+    private static final int windowSize = 5;
+    private final List<byte[]> listaPacotes;
 
     /** Variável para guardar o próximo nº de sequência. **/
     private int proxNumSeq;
 
-    /** O caminho/diretoria do ficheiro que será enviado. **/
-    private final String caminho;     // diretoria + nome do arquivo.
-
-    /** Variável para guardar a lista de pacotes da janela deslizante. **/
-    private final List<byte[]> listaPacotes;
+    /** O diretoriaDestino/diretoria do ficheiro que será enviado. **/
+    private final String diretoriaDestino;     // diretoria + nome do arquivo.
 
     /** Temporizador a ser usado em caso de falha de resposta. **/
     private Timer temporizador; // temporizador para a espera de resposta.
-
     private final Semaphore permissao;
 
     /** Booleano final para confirmar se a transferência foi concluída. **/
@@ -49,14 +45,24 @@ class Cliente {
      * @param enderecoIP Endereço IP do servidor a enviar o ficheiro.
      */
     Cliente(int portaDestino, int portaEntrada, String localDisco, String enderecoIP) {
+
         base = 0;
         proxNumSeq = 0;
-        this.caminho = localDisco;
+        this.diretoriaDestino = localDisco;
         listaPacotes = new ArrayList<>(windowSize);
         transferenciaCompleta = false;
         DatagramSocket socketSaida, socketEntrada;
         permissao = new Semaphore(1);
-        System.out.println("Cliente: porta de destino: " + portaDestino + ", porta de entrada: " + portaEntrada + ", localDisco: " + localDisco);
+
+        StringBuilder estabelecimentoConexao = new StringBuilder("Conexão Cliente Estabelecida");
+        estabelecimentoConexao.append("\n");
+        estabelecimentoConexao.append("Porta Destino dos Dados - ");
+        estabelecimentoConexao.append(portaDestino);
+        estabelecimentoConexao.append("\n");
+        estabelecimentoConexao.append("Ficheiro de Dados enviado - ");
+        estabelecimentoConexao.append(localDisco);
+        estabelecimentoConexao.append("\n");
+        System.out.println(estabelecimentoConexao);
  
         try {
             // Criação dos Sockets de Entrada e Saída.
@@ -101,20 +107,6 @@ class Cliente {
     }
 
     /**
-     * Método para controlar o Temporizador.
-     * @param novoTimer um booleano, que caso seja TRUE, reinicia-se o temporizador.
-     */
-    private void flagTempo(boolean novoTimer) {
-        if (temporizador != null) {
-            temporizador.cancel();
-        }
-        if (novoTimer) {
-            temporizador = new Timer();
-            temporizador.schedule(new Temporizador(), 5000); // criação de novo timer com 5000 milisegundos, ou seja, 5 segundo.
-        }
-    }
-
-    /**
      * A classe interna para enviar informações para o servidor em modo Thread.
      */
     class Thread7777 extends Thread {
@@ -142,8 +134,9 @@ class Cliente {
         public void run() {
             try {
 
-                try (FileInputStream ficheiro = new FileInputStream(new File(caminho))) {
+                try (FileInputStream ficheiro = new FileInputStream(new File(diretoriaDestino))) {
                     while (!transferenciaCompleta) {    // Envia pacotes ao Servidor caso a janela nao esteja cheia.
+
                         if (proxNumSeq < base + (windowSize * tamanhoPDU)) {
 
                             // Bloqueia o permissao para a thread/pacote.
@@ -151,21 +144,27 @@ class Cliente {
 
                             // Se o pacote é o primeiro da janela deslizante - inicia temporizador.
                             if (base == proxNumSeq) {
-                                flagTempo(true);
+                                // Cancela-se o temporizador caso não esteja ativo.
+                                if(temporizador != null) temporizador.cancel();
+                                // Inicialização temporizador.
+                                temporizador = new Timer();
+                                temporizador.schedule(new Temporizador(), 5000);
                             }
 
                             byte[] enviaDados;
-                            boolean ultimoNumSeq = false;
+                            // Identifica se em si é o últmo pacote.
+                            // Coloca-se a 0 quando não há mais bytes para enviar.
+                            int ultimoNumSeq = -1;
 
                             if (proxNumSeq < listaPacotes.size()) {
                                 enviaDados = listaPacotes.get(proxNumSeq);
                             } else {
                                 byte[] dataBuffer = new byte[tamanhoPDU];
                                 int tamanhoDados = ficheiro.read(dataBuffer, 0, tamanhoPDU);
-                                if (tamanhoDados == -1) {   //sem dados para enviar, envia pacote vazio
-                                    ultimoNumSeq = true;
+                                if (tamanhoDados == -1) {   // Sem dados para enviar - Pacote Enviado Vazio.
+                                    ultimoNumSeq = 0;
                                     enviaDados = PacoteUDP.gerarPacoteDados(proxNumSeq, new byte[0]);
-                                } else {    //ainda ha dados para enviar
+                                } else {    // Existencia de dados para enviar - Pacote Não Vazio.
                                     byte[] dataBytes = Arrays.copyOfRange(dataBuffer, 0, tamanhoDados);
                                     enviaDados = PacoteUDP.gerarPacoteDados(proxNumSeq, dataBytes);
                                 }
@@ -174,24 +173,37 @@ class Cliente {
 
                             // Envia o pacote de dados para o Servidor consoante o número de ACK que recebeu do mesmo.
                             socketSaida.send(new DatagramPacket(enviaDados, enviaDados.length, enderecoIP, portaDestino));
-                            System.out.println("Cliente: Numero de sequencia enviado " + proxNumSeq);
+
+                            if(proxNumSeq==0) {
+                                System.out.println("Pacote Inicial Enviado. Sinal dado ao Servidor.");
+                            }
+                            else{
+                                StringBuilder pacoteEnviado = new StringBuilder("Cliente > ");
+                                pacoteEnviado.append("Pacote número ");
+                                pacoteEnviado.append(proxNumSeq);
+                                pacoteEnviado.append(" enviado.");
+                                System.out.println(pacoteEnviado);
+                            }
 
                             // Atualiza número de sequência caso não esteja no fim.
-                            if (!ultimoNumSeq) {
+                            // Atualizamos a 0 quando não há mais dados a enviar.
+                            if (ultimoNumSeq!=0) {
                                 proxNumSeq += tamanhoPDU;
                             }
 
                             // Liberta permissao para as outras threads/pacotes.
                             permissao.release();
                         }
-                        sleep(5);
+
+                        sleep(2);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    flagTempo(false);
+                    // Cancela-se um eventual temporizador caso esteja ativo.
+                    if(temporizador != null) temporizador.cancel();
                     socketSaida.close();
-                    System.out.println("Cliente: Socket de saida fechado!");
+                    System.out.println("Cliente > Ficheiro totalmente enviado.");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -233,7 +245,7 @@ class Cliente {
 
                         // Obtém o número ACK do pacote que recebeu do Servidor.
                         int numACK = PacoteUDP.getACK(recebeDados);
-                        System.out.println("Cliente: ACK RECEBIDO " + numACK);
+                        System.out.println("Cliente > ACK " + numACK);
 
                         // Se o pacote ACK recebido for duplicado.
                         if (base == numACK + tamanhoPDU) {
@@ -241,7 +253,9 @@ class Cliente {
 
                             // Bloqueia o permissao para a thread/pacote.
                             permissao.acquire();
-                            flagTempo(false); // Cancelar o temporizador.
+
+                            if(temporizador != null) temporizador.cancel();
+
                             proxNumSeq = base;
                             // Liberta permissao para outras threads/pacotes.
                             permissao.release();
@@ -261,9 +275,11 @@ class Cliente {
                             // Bloqueia o permissao para a thread/pacote.
                             permissao.acquire();
                             if (base == proxNumSeq) {
-                                flagTempo(false);
+                                if(temporizador != null) temporizador.cancel();
                             } else {
-                                flagTempo(true);
+                                if(temporizador != null) temporizador.cancel();
+                                temporizador = new Timer();
+                                temporizador.schedule(new Temporizador(), 5000);
                             }
                             // Liberta permissao para outras threads/pacotes.
                             permissao.release();
@@ -273,7 +289,7 @@ class Cliente {
                     e.printStackTrace();
                 } finally {
                     socketEntrada.close();
-                    System.out.println("Cliente: Socket de entrada fechado!");
+                    System.out.println("Cliente > Conexão encerrada.");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
